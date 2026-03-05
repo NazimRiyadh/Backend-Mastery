@@ -1,0 +1,3 @@
+username: nazimriyadh001_db_user
+
+pass: vVUp0JRlnnvJZijY
