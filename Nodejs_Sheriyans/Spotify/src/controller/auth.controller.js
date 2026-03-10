@@ -42,4 +42,40 @@ async function register_user(req, res) {
   });
 }
 
-module.exports = { register_user };
+async function login_user(req, res) {
+  const { username, email, password } = req.body;
+
+  const user = await User.findOne({
+    $or: [{ username }, { email }],
+  });
+  if (!user) {
+    return res.status(401).json({
+      message: "Invalid credentials",
+    });
+  }
+
+  const is_password_valid = await bcrypt.compare(password, user.password);
+  if (!is_password_valid) {
+    return res.status(401).json("Invalid Credentials");
+  }
+
+  const jwt_secret = process.env.JWT_SECRET;
+  const token = jwt.sign(
+    {
+      id: user._id,
+      role: user.role,
+    },
+    jwt_secret,
+  );
+
+  return res.status(200).json({
+    message: "Logged in successfully",
+    user: {
+      id: user._id,
+      email: user.email,
+      role: user.role,
+    },
+  });
+}
+
+module.exports = { register_user, login_user };
