@@ -1,5 +1,0 @@
-username: nazimriyadh001_db_user
-
-pass: vVUp0JRlnnvJZijY
-
-mongodb+srv://backend_complete:password_backend@backendcluster.hiumws9.mongodb.net/

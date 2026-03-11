@@ -1,11 +1,11 @@
-const User = require("../models/user.model");
+const UserModel = require("../models/user.model");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
 async function register_user(req, res) {
   const { username, email, password, role } = req.body;
 
-  const user_exists = await User.findOne({
+  const user_exists = await UserModel.findOne({
     $or: [{ username }, { email }],
   });
 
@@ -17,7 +17,7 @@ async function register_user(req, res) {
 
   const hash = await bcrypt.hash(password, 10);
 
-  const user = await User.create({
+  const user = await UserModel.create({
     username,
     email,
     password: hash,
@@ -45,7 +45,7 @@ async function register_user(req, res) {
 async function login_user(req, res) {
   const { username, email, password } = req.body;
 
-  const user = await User.findOne({
+  const user = await UserModel.findOne({
     $or: [{ username }, { email }],
   });
   if (!user) {
