@@ -67,6 +67,7 @@ async function login_user(req, res) {
     },
     jwt_secret,
   );
+  res.cookie("token", token);
 
   return res.status(200).json({
     message: "Logged in successfully",
