@@ -25,9 +25,9 @@ export const registerUser = tryCatch(async (req, res) => {
   //email sending to verify
   const { username, email, password } = validation.data;
 
-  const reateLimitKey = `register_rate_limit:${req.ip}:${email}`;
+  const rateLimitKey = `register_rate_limit:${req.ip}:${email}`;
 
-  if (await redisClient.get(reateLimitKey)) {
+  if (await redisClient.get(rateLimitKey)) {
     return res.status(429).json({
       message: "Too many requests, try again later",
     });
@@ -60,12 +60,11 @@ export const registerUser = tryCatch(async (req, res) => {
   const html = getVerifyEmailHtml({ email, token: verifyToken });
 
   await sendMail({ email, subject, html });
-  await redisClient.set(reateLimitKey, "true", { EX: 60 });
+  await redisClient.set(rateLimitKey, "true", { EX: 60 });
   res.status(200).json({
     message: "If you email is valid, a verification link has been sent",
     username,
     email,
-    password,
   });
 });
 
