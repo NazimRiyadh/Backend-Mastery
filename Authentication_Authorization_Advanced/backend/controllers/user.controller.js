@@ -1,5 +1,9 @@
 import tryCatch from "../middlewares/try_catch.js";
-import { formatZodError, register_schema } from "../config/zod.js";
+import {
+  formatZodError,
+  register_schema,
+  login_schema,
+} from "../config/zod.js";
 import sanitize from "mongo-sanitize";
 import { redisClient } from "../index.js";
 import mongoose, { mongo } from "mongoose";
@@ -7,7 +11,7 @@ import User from "../models/user.model.js";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
 import sendMail from "../config/sendMail.js";
-import { getVerifyEmailHtml } from "../config/html.js";
+import { getVerifyEmailHtml, getOtpHtml } from "../config/html.js";
 
 export const registerUser = tryCatch(async (req, res) => {
   //sanitize to prevent Nosql Injection
@@ -19,7 +23,7 @@ export const registerUser = tryCatch(async (req, res) => {
     const zodError = validation.error;
 
     const formatError = formatZodError(zodError);
-    res.status(400).json(formatError);
+    return res.status(400).json(formatError);
   }
 
   //email sending to verify
@@ -104,4 +108,64 @@ export const verifyUser = tryCatch(async (req, res) => {
     },
   });
   await redisClient.del(verifyKey);
+});
+
+export const loginUser = tryCatch(async (req, res) => {
+  //sanitize to prevent Nosql Injection
+  const sanitizedData = sanitize(req.body);
+
+  //zod validation
+  const validation = login_schema.safeParse(sanitizedData);
+  if (!validation.success) {
+    const zodError = validation.error;
+
+    const formatError = formatZodError(zodError);
+    return res.status(400).json(formatError);
+  }
+
+  //email sending to verify
+  const { email, password } = validation.data;
+
+  const rateLimitKey = `login_rate_limit:${req.ip}:${email}`;
+
+  if (await redisClient.get(rateLimitKey)) {
+    return res.status(429).json({
+      message: "Too many requests, try again later",
+    });
+  }
+
+  const user = await User.findOne({ email });
+
+  if (!user) {
+    return res.status(400).json({
+      message: "Invalid Credentials",
+    });
+  }
+
+  const isPasswordValid = await bcrypt.compare(password, user.password);
+
+  if (!isPasswordValid) {
+    return res.status(400).json({
+      message: "Invalid Credentials",
+    });
+  }
+
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+  const otpKey = `otp:${email}`;
+
+  await redisClient.set(otpKey, JSON.stringify({ otp }), { EX: 300 });
+
+  const subject = "Login Verification Code";
+
+  const html = getOtpHtml({ email, otp });
+
+  await sendMail({ email, subject, html });
+
+  await redisClient.set(rateLimitKey, "true", { EX: 60 });
+
+  res.status(200).json({
+    message: "If your email is valid, a verification code has been sent",
+    email,
+  });
 });

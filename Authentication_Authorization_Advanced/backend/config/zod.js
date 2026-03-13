@@ -12,6 +12,14 @@ export const register_schema = z.object({
     .max(20, "Password must be at most 20 characters long"),
 });
 
+export const login_schema = z.object({
+  email: z.string().email("Invalid email address"),
+  password: z
+    .string()
+    .min(6, "Password must be at least 6 characters long")
+    .max(20, "Password must be at most 20 characters long"),
+});
+
 export function formatZodError(error) {
   return error.issues.map((issue) => ({
     field: issue.path.join(".") || unknown,
