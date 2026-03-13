@@ -169,3 +169,49 @@ export const loginUser = tryCatch(async (req, res) => {
     email,
   });
 });
+
+export const verifyOtp = tryCatch(async (req, res) => {
+  const { email, otp } = req.body;
+
+  if (!email || !otp) {
+    return res.status(400).json({
+      message: "Email and OTP are required",
+    });
+  }
+
+  const otpKey = `otp:${email}`;
+
+  const otpDataJson = await redisClient.get(otpKey);
+
+  if (!otpDataJson) {
+    return res.status(400).json({
+      message: "OTP is Expired",
+    });
+  }
+
+  const otpData = JSON.parse(otpDataJson);
+
+  if (otpData.otp !== otp) {
+    return res.status(400).json({
+      message: "Invalid OTP",
+    });
+  }
+
+  res.status(200).json({
+    message: "OTP Verified successfully!",
+  });
+  await redisClient.del(otpKey);
+
+  let user = await User.findOne({ email });
+
+  const tokenData = await generateToken(user._id, res);
+
+  res.status(200).json({
+    message: "Login Successful",
+    user: {
+      _id: user._id,
+      username: user.username,
+      email: user.email,
+    },
+  });
+});
