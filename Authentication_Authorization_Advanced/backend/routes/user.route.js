@@ -3,6 +3,7 @@ import {
   registerUser,
   verifyUser,
   loginUser,
+  verifyOtp,
 } from "../controllers/user.controller.js";
 
 const router = express.Router();

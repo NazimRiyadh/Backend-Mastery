@@ -12,6 +12,7 @@ import bcrypt from "bcrypt";
 import crypto from "crypto";
 import sendMail from "../config/sendMail.js";
 import { getVerifyEmailHtml, getOtpHtml } from "../config/html.js";
+import { generateToken } from "../config/generateToken.js";
 
 export const registerUser = tryCatch(async (req, res) => {
   //sanitize to prevent Nosql Injection
@@ -191,20 +192,17 @@ export const verifyOtp = tryCatch(async (req, res) => {
 
   const otpData = JSON.parse(otpDataJson);
 
-  if (otpData.otp !== otp) {
+  if (otpData.otp !== otp.toString()) {
     return res.status(400).json({
       message: "Invalid OTP",
     });
   }
 
-  res.status(200).json({
-    message: "OTP Verified successfully!",
-  });
   await redisClient.del(otpKey);
 
-  let user = await User.findOne({ email });
+  const user = await User.findOne({ email });
 
-  const tokenData = await generateToken(user._id, res);
+  await generateToken(user._id, res, redisClient);
 
   res.status(200).json({
     message: "Login Successful",

@@ -1,6 +1,7 @@
 import express from "express";
 import dotenv from "dotenv";
 import connectDB from "./config/db.js";
+import cookieParser from "cookie-parser";
 //import Redis from "ioredis";
 import { createClient } from "redis";
 dotenv.config();
@@ -31,6 +32,7 @@ const app = express();
 const PORT = process.env.PORT;
 
 app.use(express.json());
+app.use(cookieParser());
 
 //import routes
 import userRoutes from "./routes/user.route.js";

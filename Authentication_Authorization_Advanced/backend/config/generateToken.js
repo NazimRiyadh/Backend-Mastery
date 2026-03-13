@@ -1,6 +1,6 @@
 import jwt from "jsonwebtoken";
 
-export const generateToken = async (id) => {
+export const generateToken = async (id, res, redisClient) => {
   const accessToken = jwt.sign({ id }, process.env.JWT_SECRET, {
     expiresIn: "1m",
   });
