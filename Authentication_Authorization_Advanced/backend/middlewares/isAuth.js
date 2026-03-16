@@ -2,6 +2,7 @@ import jwt from "jsonwebtoken";
 import { redisClient } from "../config/redis.js";
 import User from "../models/user.model.js";
 import tryCatch from "./try_catch.js";
+import AppError from "../utils/AppError.js";
 import { verifyRefreshToken, generateAccessToken } from "../config/generateToken.js";
 
 export const isAuth = tryCatch(async (req, res, next) => {
@@ -10,15 +11,11 @@ export const isAuth = tryCatch(async (req, res, next) => {
     // No access token — try to refresh using refresh token
     const refreshToken = req.cookies.refreshToken;
     if (!refreshToken) {
-      return res.status(403).json({
-        message: "Please login. No token found",
-      });
+      throw new AppError("Please login. No token found", 403);
     }
     const decodedToken = await verifyRefreshToken(refreshToken);
     if (!decodedToken) {
-      return res.status(403).json({
-        message: "Please login. Invalid token",
-      });
+      throw new AppError("Please login. Invalid token", 403);
     }
 
     // Generate a new access token
@@ -26,9 +23,7 @@ export const isAuth = tryCatch(async (req, res, next) => {
 
     const user = await User.findById(decodedToken.id).select("-password");
     if (!user) {
-      return res.status(400).json({
-        message: "No user with this id",
-      });
+      throw new AppError("No user with this id", 400);
     }
     await redisClient.setEx(
       `user:${decodedToken.id}`,
@@ -47,24 +42,18 @@ export const isAuth = tryCatch(async (req, res, next) => {
     // Access token expired/invalid — try refresh flow
     const refreshToken = req.cookies.refreshToken;
     if (!refreshToken) {
-      return res.status(403).json({
-        message: "Please login. Token expired",
-      });
+      throw new AppError("Please login. Token expired", 403);
     }
     const refreshDecoded = await verifyRefreshToken(refreshToken);
     if (!refreshDecoded) {
-      return res.status(403).json({
-        message: "Please login. Invalid token",
-      });
+      throw new AppError("Please login. Invalid token", 403);
     }
 
     await generateAccessToken(refreshDecoded.id, res);
 
     const user = await User.findById(refreshDecoded.id).select("-password");
     if (!user) {
-      return res.status(400).json({
-        message: "No user with this id",
-      });
+      throw new AppError("No user with this id", 400);
     }
     await redisClient.setEx(
       `user:${refreshDecoded.id}`,
@@ -83,9 +72,7 @@ export const isAuth = tryCatch(async (req, res, next) => {
 
   const user = await User.findById(decodedToken.id).select("-password");
   if (!user) {
-    return res.status(400).json({
-      message: "No user with this id",
-    });
+    throw new AppError("No user with this id", 400);
   }
   await redisClient.setEx(
     `user:${decodedToken.id}`,

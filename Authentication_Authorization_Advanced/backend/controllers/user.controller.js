@@ -1,12 +1,6 @@
 import tryCatch from "../middlewares/try_catch.js";
-import {
-  formatZodError,
-  register_schema,
-  login_schema,
-} from "../config/zod.js";
-import sanitize from "mongo-sanitize";
 import { redisClient } from "../config/redis.js";
-
+import AppError from "../utils/AppError.js";
 import User from "../models/user.model.js";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
@@ -15,35 +9,18 @@ import { getVerifyEmailHtml, getOtpHtml } from "../config/html.js";
 import { generateToken } from "../config/generateToken.js";
 
 export const registerUser = tryCatch(async (req, res) => {
-  //sanitize to prevent Nosql Injection
-  const sanitizedData = sanitize(req.body);
-
-  //zod validation
-  const validation = register_schema.safeParse(sanitizedData);
-  if (!validation.success) {
-    const zodError = validation.error;
-
-    const formatError = formatZodError(zodError);
-    return res.status(400).json(formatError);
-  }
-
-  //email sending to verify
-  const { username, email, password } = validation.data;
+  const { username, email, password } = req.validated;
 
   const rateLimitKey = `register_rate_limit:${req.ip}:${email}`;
 
   if (await redisClient.get(rateLimitKey)) {
-    return res.status(429).json({
-      message: "Too many requests, try again later",
-    });
+    throw new AppError("Too many requests, try again later", 429);
   }
 
   const existingUser = await User.findOne({ email });
 
   if (existingUser) {
-    return res.status(400).json({
-      message: "User already exists",
-    });
+    throw new AppError("User already exists", 400);
   }
 
   const hashPassword = await bcrypt.hash(password, 10);
@@ -77,9 +54,7 @@ export const verifyUser = tryCatch(async (req, res) => {
   const { token } = req.params;
 
   if (!token) {
-    return res.status(400).json({
-      message: "Verification token is required",
-    });
+    throw new AppError("Verification token is required", 400);
   }
 
   const verifyKey = `verify:${token}`;
@@ -87,9 +62,7 @@ export const verifyUser = tryCatch(async (req, res) => {
   const userDataJson = await redisClient.get(verifyKey);
 
   if (!userDataJson) {
-    return res.status(400).json({
-      message: "Verification Link is Expired",
-    });
+    throw new AppError("Verification Link is Expired", 400);
   }
 
   const userData = JSON.parse(userDataJson);
@@ -113,43 +86,24 @@ export const verifyUser = tryCatch(async (req, res) => {
 });
 
 export const loginUser = tryCatch(async (req, res) => {
-  //sanitize to prevent Nosql Injection
-  const sanitizedData = sanitize(req.body);
-
-  //zod validation
-  const validation = login_schema.safeParse(sanitizedData);
-  if (!validation.success) {
-    const zodError = validation.error;
-
-    const formatError = formatZodError(zodError);
-    return res.status(400).json(formatError);
-  }
-
-  //email sending to verify
-  const { email, password } = validation.data;
+  const { email, password } = req.validated;
 
   const rateLimitKey = `login_rate_limit:${req.ip}:${email}`;
 
   if (await redisClient.get(rateLimitKey)) {
-    return res.status(429).json({
-      message: "Too many requests, try again later",
-    });
+    throw new AppError("Too many requests, try again later", 429);
   }
 
   const user = await User.findOne({ email });
 
   if (!user) {
-    return res.status(400).json({
-      message: "Invalid Credentials",
-    });
+    throw new AppError("Invalid Credentials", 400);
   }
 
   const isPasswordValid = await bcrypt.compare(password, user.password);
 
   if (!isPasswordValid) {
-    return res.status(400).json({
-      message: "Invalid Credentials",
-    });
+    throw new AppError("Invalid Credentials", 400);
   }
 
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
@@ -176,9 +130,7 @@ export const verifyOtp = tryCatch(async (req, res) => {
   const { email, otp } = req.body;
 
   if (!email || !otp) {
-    return res.status(400).json({
-      message: "Email and OTP are required",
-    });
+    throw new AppError("Email and OTP are required", 400);
   }
 
   const otpKey = `otp:${email}`;
@@ -186,17 +138,13 @@ export const verifyOtp = tryCatch(async (req, res) => {
   const otpDataJson = await redisClient.get(otpKey);
 
   if (!otpDataJson) {
-    return res.status(400).json({
-      message: "OTP is Expired",
-    });
+    throw new AppError("OTP is Expired", 400);
   }
 
   const otpData = JSON.parse(otpDataJson);
 
   if (otpData.otp !== otp.toString()) {
-    return res.status(400).json({
-      message: "Invalid OTP",
-    });
+    throw new AppError("Invalid OTP", 400);
   }
 
   await redisClient.del(otpKey);
@@ -222,4 +170,3 @@ export const getProfile = tryCatch(async (req, res) => {
     user,
   });
 });
-

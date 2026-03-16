@@ -24,9 +24,13 @@ app.use(cookieParser());
 
 //import routes
 import userRoutes from "./routes/user.route.js";
+import errorHandler from "./middlewares/errorHandler.js";
 
 //using routes
 app.use("/api/v1/user", userRoutes);
+
+//global error handler (must be after all routes)
+app.use(errorHandler);
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
