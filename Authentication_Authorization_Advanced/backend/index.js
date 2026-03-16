@@ -2,23 +2,28 @@ import express from "express";
 import dotenv from "dotenv";
 import connectDB from "./config/db.js";
 import cookieParser from "cookie-parser";
+import helmet from "helmet";
+import cors from "cors";
 import { redisClient } from "./config/redis.js";
 dotenv.config();
 
 //MongoDB connection
 await connectDB();
 
-redisClient
-  .connect()
-  .then(() => {
-    console.log("Redis Connected");
-  })
-  .catch(console.error);
+await redisClient.connect();
+console.log("Redis Connected");
 
 const app = express();
 
 const PORT = process.env.PORT;
 
+app.use(helmet());
+app.use(
+  cors({
+    origin: process.env.FRONTEND_URL || "http://localhost:5173",
+    credentials: true,
+  }),
+);
 app.use(express.json());
 app.use(cookieParser());
 

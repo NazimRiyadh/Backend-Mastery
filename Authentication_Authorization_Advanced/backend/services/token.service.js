@@ -1,11 +1,15 @@
 import jwt from "jsonwebtoken";
-import { redisClient } from "./redis.js";
+import { redisClient } from "../config/redis.js";
 import { TTL } from "../utils/constants.js";
+
+const isProduction = process.env.NODE_ENV === "production";
 
 export const verifyRefreshToken = async (refreshToken) => {
   try {
     const decodedToken = jwt.verify(refreshToken, process.env.REFRESH_SECRET);
-    const storedToken = await redisClient.get(`refresh_token:${decodedToken.id}`);
+    const storedToken = await redisClient.get(
+      `refresh_token:${decodedToken.id}`,
+    );
     if (storedToken === refreshToken) {
       return decodedToken;
     }
@@ -30,14 +34,14 @@ export const generateToken = async (id, res) => {
 
   res.cookie("accessToken", accessToken, {
     httpOnly: true,
-    //secure: true,
+    secure: isProduction,
     sameSite: "strict",
     maxAge: TTL.ACCESS_TOKEN_MS,
   });
 
   res.cookie("refreshToken", refreshToken, {
     httpOnly: true,
-    //secure: true,
+    secure: isProduction,
     sameSite: "strict",
     maxAge: TTL.REFRESH_TOKEN_MS,
   });
@@ -51,7 +55,7 @@ export const generateAccessToken = async (id, res) => {
   });
   res.cookie("accessToken", accessToken, {
     httpOnly: true,
-    //secure: true,
+    secure: isProduction,
     sameSite: "strict",
     maxAge: TTL.ACCESS_TOKEN_MS,
   });

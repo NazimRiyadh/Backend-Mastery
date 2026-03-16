@@ -4,7 +4,7 @@ import User from "../models/user.model.js";
 import tryCatch from "./try_catch.js";
 import AppError from "../utils/AppError.js";
 import { TTL } from "../utils/constants.js";
-import { verifyRefreshToken, generateAccessToken } from "../config/generateToken.js";
+import { verifyRefreshToken, generateAccessToken } from "../services/token.service.js";
 
 export const isAuth = tryCatch(async (req, res, next) => {
   const token = req.cookies.accessToken;
