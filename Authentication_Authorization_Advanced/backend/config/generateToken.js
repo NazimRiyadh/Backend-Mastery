@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import { redisClient } from "./redis.js";
+import { TTL } from "../utils/constants.js";
 
 export const verifyRefreshToken = async (refreshToken) => {
   try {
@@ -16,29 +17,29 @@ export const verifyRefreshToken = async (refreshToken) => {
 
 export const generateToken = async (id, res) => {
   const accessToken = jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: "1m",
+    expiresIn: TTL.ACCESS_TOKEN,
   });
   const refreshToken = jwt.sign({ id }, process.env.REFRESH_SECRET, {
-    expiresIn: "7d",
+    expiresIn: TTL.REFRESH_TOKEN,
   });
 
   const refreshTokenKey = `refresh_token:${id}`;
   await redisClient.set(refreshTokenKey, refreshToken, {
-    EX: 7 * 24 * 60 * 60,
+    EX: TTL.REFRESH_TOKEN_SECONDS,
   });
 
   res.cookie("accessToken", accessToken, {
     httpOnly: true,
     //secure: true,
     sameSite: "strict",
-    maxAge: 1 * 60 * 1000,
+    maxAge: TTL.ACCESS_TOKEN_MS,
   });
 
   res.cookie("refreshToken", refreshToken, {
     httpOnly: true,
     //secure: true,
     sameSite: "strict",
-    maxAge: 7 * 24 * 60 * 60 * 1000,
+    maxAge: TTL.REFRESH_TOKEN_MS,
   });
 
   return { accessToken, refreshToken };
@@ -46,12 +47,12 @@ export const generateToken = async (id, res) => {
 
 export const generateAccessToken = async (id, res) => {
   const accessToken = jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: "1m",
+    expiresIn: TTL.ACCESS_TOKEN,
   });
   res.cookie("accessToken", accessToken, {
     httpOnly: true,
     //secure: true,
     sameSite: "strict",
-    maxAge: 1 * 60 * 1000,
+    maxAge: TTL.ACCESS_TOKEN_MS,
   });
 };

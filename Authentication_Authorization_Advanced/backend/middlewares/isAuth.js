@@ -3,6 +3,7 @@ import { redisClient } from "../config/redis.js";
 import User from "../models/user.model.js";
 import tryCatch from "./try_catch.js";
 import AppError from "../utils/AppError.js";
+import { TTL } from "../utils/constants.js";
 import { verifyRefreshToken, generateAccessToken } from "../config/generateToken.js";
 
 export const isAuth = tryCatch(async (req, res, next) => {
@@ -27,7 +28,7 @@ export const isAuth = tryCatch(async (req, res, next) => {
     }
     await redisClient.setEx(
       `user:${decodedToken.id}`,
-      7 * 24 * 60 * 60,
+      TTL.USER_CACHE,
       JSON.stringify(user),
     );
     req.user = user;
@@ -57,7 +58,7 @@ export const isAuth = tryCatch(async (req, res, next) => {
     }
     await redisClient.setEx(
       `user:${refreshDecoded.id}`,
-      7 * 24 * 60 * 60,
+      TTL.USER_CACHE,
       JSON.stringify(user),
     );
     req.user = user;

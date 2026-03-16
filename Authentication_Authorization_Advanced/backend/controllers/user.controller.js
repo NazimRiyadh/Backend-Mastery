@@ -1,6 +1,7 @@
 import tryCatch from "../middlewares/try_catch.js";
 import { redisClient } from "../config/redis.js";
 import AppError from "../utils/AppError.js";
+import { TTL, SALT_ROUNDS } from "../utils/constants.js";
 import User from "../models/user.model.js";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
@@ -23,7 +24,7 @@ export const registerUser = tryCatch(async (req, res) => {
     throw new AppError("User already exists", 400);
   }
 
-  const hashPassword = await bcrypt.hash(password, 10);
+  const hashPassword = await bcrypt.hash(password, SALT_ROUNDS);
 
   const verifyToken = crypto.randomBytes(32).toString("hex");
 
@@ -35,14 +36,14 @@ export const registerUser = tryCatch(async (req, res) => {
     password: hashPassword,
   });
 
-  await redisClient.set(verifyKey, dataStore, { EX: 300 });
+  await redisClient.set(verifyKey, dataStore, { EX: TTL.VERIFY_EMAIL });
 
   const subject = "Verify your email for account creation";
 
   const html = getVerifyEmailHtml({ email, token: verifyToken });
 
   await sendMail({ email, subject, html });
-  await redisClient.set(rateLimitKey, "true", { EX: 60 });
+  await redisClient.set(rateLimitKey, "true", { EX: TTL.RATE_LIMIT });
   res.status(200).json({
     message: "If you email is valid, a verification link has been sent",
     username,
@@ -110,7 +111,7 @@ export const loginUser = tryCatch(async (req, res) => {
 
   const otpKey = `otp:${email}`;
 
-  await redisClient.set(otpKey, JSON.stringify({ otp }), { EX: 300 });
+  await redisClient.set(otpKey, JSON.stringify({ otp }), { EX: TTL.OTP });
 
   const subject = "Login Verification Code";
 
@@ -118,7 +119,7 @@ export const loginUser = tryCatch(async (req, res) => {
 
   await sendMail({ email, subject, html });
 
-  await redisClient.set(rateLimitKey, "true", { EX: 60 });
+  await redisClient.set(rateLimitKey, "true", { EX: TTL.RATE_LIMIT });
 
   res.status(200).json({
     message: "If your email is valid, a verification code has been sent",
