@@ -5,8 +5,8 @@ import {
   login_schema,
 } from "../config/zod.js";
 import sanitize from "mongo-sanitize";
-import { redisClient } from "../index.js";
-import mongoose, { mongo } from "mongoose";
+import { redisClient } from "../config/redis.js";
+
 import User from "../models/user.model.js";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
@@ -100,6 +100,8 @@ export const verifyUser = tryCatch(async (req, res) => {
     password: userData.password,
   });
 
+  await redisClient.del(verifyKey);
+
   res.status(200).json({
     message: "Email Verified successfully! Your account has been created",
     user: {
@@ -108,7 +110,6 @@ export const verifyUser = tryCatch(async (req, res) => {
       email: newUser.email,
     },
   });
-  await redisClient.del(verifyKey);
 });
 
 export const loginUser = tryCatch(async (req, res) => {
@@ -202,7 +203,7 @@ export const verifyOtp = tryCatch(async (req, res) => {
 
   const user = await User.findOne({ email });
 
-  await generateToken(user._id, res, redisClient);
+  await generateToken(user._id, res);
 
   res.status(200).json({
     message: "Login Successful",
@@ -213,3 +214,12 @@ export const verifyOtp = tryCatch(async (req, res) => {
     },
   });
 });
+
+export const getProfile = tryCatch(async (req, res) => {
+  const user = req.user;
+  res.status(200).json({
+    message: "Profile fetched successfully",
+    user,
+  });
+});
+

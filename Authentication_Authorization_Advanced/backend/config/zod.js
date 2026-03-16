@@ -22,7 +22,7 @@ export const login_schema = z.object({
 
 export function formatZodError(error) {
   return error.issues.map((issue) => ({
-    field: issue.path.join(".") || unknown,
+    field: issue.path.join(".") || "unknown",
     message: issue.message,
   }));
 }

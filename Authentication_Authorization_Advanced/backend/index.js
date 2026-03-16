@@ -2,23 +2,11 @@ import express from "express";
 import dotenv from "dotenv";
 import connectDB from "./config/db.js";
 import cookieParser from "cookie-parser";
-//import Redis from "ioredis";
-import { createClient } from "redis";
+import { redisClient } from "./config/redis.js";
 dotenv.config();
 
 //MongoDB connection
 await connectDB();
-
-//Redis Connection
-const redisUrl = process.env.REDIS_URL;
-if (!redisUrl) {
-  console.log("Missing Redis url!");
-  process.exit(1);
-}
-
-export const redisClient = createClient({
-  url: redisUrl,
-});
 
 redisClient
   .connect()
