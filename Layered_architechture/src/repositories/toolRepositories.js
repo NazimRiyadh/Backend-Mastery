@@ -1,10 +1,8 @@
-import BaseRepository from "./baseRepository"
-const Tool = require("../models/Tools")
+import BaseRepository from "./baseRepository.js"
+import Tool from "../models/toolSchema.js"
 
 
-/**
- * Is class ke bare main likh sakta hoon
- */
+
 class ToolRepository extends BaseRepository {
     constructor() {
         super(Tool)
@@ -24,10 +22,6 @@ class ToolRepository extends BaseRepository {
         return await Tool.findByCategory(category);
     }
 
-    async findPopular() {
-        return await Tool.findPopular();
-    }
-
     async search(searchQuery = "postman") {
         return await this.findAll({
             $or: [
@@ -35,7 +29,7 @@ class ToolRepository extends BaseRepository {
                 { description: { $regex: searchQuery, $options: 'i' } },
                 { tags: { $in: [new RegExp(searchQuery, 'i')] } }
             ]
-        }, { sort: { createdAt: -1 } });
+        });
     }
 }
 

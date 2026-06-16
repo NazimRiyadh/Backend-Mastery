@@ -29,3 +29,5 @@ const toolSchema= new mongoose.Schema({
 
 toolSchema.index({categrory: 1})
 toolSchema.index({name: 1})
+
+export default mongoose.model('Tool', toolSchema);

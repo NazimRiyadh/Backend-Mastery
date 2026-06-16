@@ -1,4 +1,4 @@
-import ToolRepository from "../repositories/toolRepository.js";
+import ToolRepository from "../repositories/toolRepositories.js";
 
 
 class ToolService {
